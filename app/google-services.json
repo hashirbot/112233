@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1030967330576",
+    "firebase_url": "https://h4xcontrol-default-rtdb.firebaseio.com",
+    "project_id": "h4xcontrol",
+    "storage_bucket": "h4xcontrol.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1030967330576:android:259bbf8164175017ea8795",
+        "android_client_info": {
+          "package_name": "com.batteryrepair.erp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDp4X06fY-iDdk4q9fnNW4dN9l48-aTojE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

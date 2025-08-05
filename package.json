@@ -1,0 +1,13 @@
+{
+  "name": "battery-repair-android",
+  "version": "1.0.0",
+  "description": "Android Battery Repair ERP System",
+  "scripts": {
+    "build": "echo 'This is an Android project. Use ./gradlew build instead of npm run build'",
+    "dev": "echo 'This is an Android project. Open in Android Studio or use ./gradlew installDebug'",
+    "start": "echo 'This is an Android project. Use Android Studio or ./gradlew installDebug'"
+  },
+  "keywords": ["android", "battery", "repair", "erp"],
+  "author": "",
+  "license": "ISC"
+}
