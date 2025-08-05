@@ -50,44 +50,56 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadCurrentUser() {
         lifecycleScope.launch {
-            val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-            firebaseUser?.let { user ->
-                repository.getUser(user.uid).fold(
-                    onSuccess = { userData ->
-                        currentUser = userData
-                        invalidateOptionsMenu() // Refresh menu to show/hide admin option
-                    },
-                    onFailure = { /* Handle error silently */ }
-                )
+            try {
+                val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                firebaseUser?.let { user ->
+                    repository.getUser(user.uid).fold(
+                        onSuccess = { userData ->
+                            currentUser = userData
+                            invalidateOptionsMenu() // Refresh menu to show/hide admin option
+                        },
+                        onFailure = { /* Handle error silently */ }
+                    )
+                }
+            } catch (e: Exception) {
+                // Handle error silently
             }
         }
     }
 
     
     private fun setupRecyclerView() {
-        dashboardAdapter = DashboardAdapter { action ->
-            when (action) {
-                DashboardAction.NEW_BATTERY -> startActivity(Intent(this, BatteryEntryActivity::class.java))
-                DashboardAction.TECHNICIAN_PANEL -> startActivity(Intent(this, TechnicianPanelActivity::class.java))
-                DashboardAction.SEARCH -> {
-                    Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show()
-                }
-                DashboardAction.REPORTS -> {
-                    startActivity(Intent(this, ReportsActivity::class.java))
-                }
-                DashboardAction.BACKUP_DATA -> {
-                    if (currentUser?.role == UserRole.ADMIN || currentUser?.role == UserRole.SHOP_STAFF) {
-                        performBackup()
-                    } else {
-                        Toast.makeText(this, "Only admin and staff can create backups", Toast.LENGTH_SHORT).show()
+        try {
+            dashboardAdapter = DashboardAdapter { action ->
+                try {
+                    when (action) {
+                        DashboardAction.NEW_BATTERY -> startActivity(Intent(this, BatteryEntryActivity::class.java))
+                        DashboardAction.TECHNICIAN_PANEL -> startActivity(Intent(this, TechnicianPanelActivity::class.java))
+                        DashboardAction.SEARCH -> {
+                            Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show()
+                        }
+                        DashboardAction.REPORTS -> {
+                            startActivity(Intent(this, ReportsActivity::class.java))
+                        }
+                        DashboardAction.BACKUP_DATA -> {
+                            if (currentUser?.role == UserRole.ADMIN || currentUser?.role == UserRole.SHOP_STAFF) {
+                                performBackup()
+                            } else {
+                                Toast.makeText(this, "Only admin and staff can create backups", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                     }
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error opening activity: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
-        }
-        
-        binding.recyclerView.apply {
-            layoutManager = LinearLayoutManager(this@MainActivity)
-            adapter = dashboardAdapter
+            
+            binding.recyclerView.apply {
+                layoutManager = LinearLayoutManager(this@MainActivity)
+                adapter = dashboardAdapter
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error setting up RecyclerView: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
     
@@ -155,7 +167,11 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_admin -> {
-                startActivity(Intent(this, AdminActivity::class.java))
+                try {
+                    startActivity(Intent(this, AdminActivity::class.java))
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error opening admin panel: ${e.message}", Toast.LENGTH_LONG).show()
+                }
                 true
             }
             R.id.action_logout -> {

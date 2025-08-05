@@ -13,9 +13,12 @@ class ReportsActivity : AppCompatActivity() {
         binding = ActivityReportsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup toolbar
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = "Reports"
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Reports"
+        }
     }
     
 

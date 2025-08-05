@@ -603,30 +603,25 @@ class FirebaseRepository {
     // Create default users for demo
     suspend fun createDefaultUsers() {
         try {
-            // Create admin user
-            try {
-                auth.createUserWithEmailAndPassword("admin@batteryrepair.local", "admin123").await()
-            } catch (e: Exception) {
-                // Admin user might already exist
+            val defaultUsers = listOf(
+                Triple("admin@batteryrepair.local", "admin123", "admin"),
+                Triple("staff@batteryrepair.local", "staff123", "staff"),
+                Triple("technician@batteryrepair.local", "tech123", "technician")
+            )
+            
+            for ((email, password, username) in defaultUsers) {
+                try {
+                    val result = auth.createUserWithEmailAndPassword(email, password).await()
+                    result.user?.let { firebaseUser ->
+                        val user = createDefaultUser(firebaseUser.uid, username)
+                        usersRef.child(firebaseUser.uid).setValue(user).await()
+                    }
+                } catch (e: Exception) {
+                    // User might already exist, continue with next user
+                }
             }
-
-            // Create staff user
-            try {
-                auth.createUserWithEmailAndPassword("staff@batteryrepair.local", "staff123").await()
-            } catch (e: Exception) {
-                // Staff user might already exist
-            }
-
-            // Create technician user
-            try {
-                auth.createUserWithEmailAndPassword("technician@batteryrepair.local", "tech123").await()
-            } catch (e: Exception) {
-                // Technician user might already exist
-            }
-
         } catch (e: Exception) {
-            // Top-level error handling (network issue, permission denied, etc.)
-            e.printStackTrace()
+            // Handle top-level errors silently for initialization
         }
     }
 

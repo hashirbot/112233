@@ -46,23 +46,29 @@ class LoginActivity : AppCompatActivity() {
         binding.btnLogin.text = "Signing in..."
         
         lifecycleScope.launch {
-            repository.signIn(username, password).fold(
-                onSuccess = { user ->
-                    Toast.makeText(this@LoginActivity, "Welcome ${user.fullName}!", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                    finish()
-                },
-                onFailure = { error ->
-                    val errorMessage = when {
-                        error.message?.contains("password") == true -> "Invalid username or password"
-                        error.message?.contains("network") == true -> "Network error. Please check your connection."
-                        else -> "Login failed: ${error.message}"
+            try {
+                repository.signIn(username, password).fold(
+                    onSuccess = { user ->
+                        Toast.makeText(this@LoginActivity, "Welcome ${user.fullName}!", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        finish()
+                    },
+                    onFailure = { error ->
+                        val errorMessage = when {
+                            error.message?.contains("password") == true -> "Invalid username or password"
+                            error.message?.contains("network") == true -> "Network error. Please check your connection."
+                            else -> "Login failed: ${error.message}"
+                        }
+                        Toast.makeText(this@LoginActivity, errorMessage, Toast.LENGTH_LONG).show()
+                        binding.btnLogin.isEnabled = true
+                        binding.btnLogin.text = "Sign In"
                     }
-                    Toast.makeText(this@LoginActivity, errorMessage, Toast.LENGTH_LONG).show()
-                    binding.btnLogin.isEnabled = true
-                    binding.btnLogin.text = "Sign In"
-                }
-            )
+                )
+            } catch (e: Exception) {
+                Toast.makeText(this@LoginActivity, "Login error: ${e.message}", Toast.LENGTH_LONG).show()
+                binding.btnLogin.isEnabled = true
+                binding.btnLogin.text = "Sign In"
+            }
         }
     }
     
