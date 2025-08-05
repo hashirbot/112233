@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 
 class FirebaseRepository {
     
@@ -350,6 +351,209 @@ class FirebaseRepository {
     }
     
     // Utility Functions
+    suspend fun getAllUsers(): Result<List<User>> {
+        return try {
+            val snapshot = usersRef.get().await()
+            val users = mutableListOf<User>()
+            
+            for (userSnapshot in snapshot.children) {
+                userSnapshot.getValue(User::class.java)?.let { user ->
+                    users.add(user)
+                }
+            }
+            
+            Result.success(users.sortedBy { it.fullName })
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getShopSettings(): Result<ShopSettings> {
+        return try {
+            val snapshot = settingsRef.get().await()
+            val shopName = snapshot.child("shop_name").getValue(String::class.java) ?: "Battery Repair Service"
+            val batteryIdPrefix = snapshot.child("battery_id_prefix").getValue(String::class.java) ?: "BAT"
+            val batteryIdStart = snapshot.child("battery_id_start").getValue(String::class.java)?.toIntOrNull() ?: 1
+            val batteryIdPadding = snapshot.child("battery_id_padding").getValue(String::class.java)?.toIntOrNull() ?: 4
+            
+            val settings = ShopSettings(
+                shopName = shopName,
+                batteryIdPrefix = batteryIdPrefix,
+                batteryIdStart = batteryIdStart,
+                batteryIdPadding = batteryIdPadding
+            )
+            
+            Result.success(settings)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updateShopSettings(shopName: String, prefix: String, start: Int, padding: Int): Result<Unit> {
+        return try {
+            val updates = mapOf(
+                "shop_name" to shopName,
+                "battery_id_prefix" to prefix,
+                "battery_id_start" to start.toString(),
+                "battery_id_padding" to padding.toString()
+            )
+            
+            settingsRef.updateChildren(updates).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun createUser(username: String, fullName: String, password: String, role: UserRole): Result<Unit> {
+        return try {
+            val email = "$username@batteryrepair.local"
+            val result = auth.createUserWithEmailAndPassword(email, password).await()
+            
+            result.user?.let { firebaseUser ->
+                val user = User(
+                    id = firebaseUser.uid,
+                    username = username,
+                    fullName = fullName,
+                    role = role,
+                    isActive = true
+                )
+                
+                usersRef.child(firebaseUser.uid).setValue(user).await()
+                Result.success(Unit)
+            } ?: Result.failure(Exception("Failed to create user"))
+        } catch (e: FirebaseAuthUserCollisionException) {
+            Result.failure(Exception("User with this username already exists"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun updateUser(userId: String, fullName: String, password: String?, role: UserRole): Result<Unit> {
+        return try {
+            val updates = mutableMapOf<String, Any>(
+                "fullName" to fullName,
+                "role" to role
+            )
+            
+            usersRef.child(userId).updateChildren(updates).await()
+            
+            // Update password if provided
+            password?.let { newPassword ->
+                val currentUser = auth.currentUser
+                if (currentUser?.uid == userId) {
+                    currentUser.updatePassword(newPassword).await()
+                }
+            }
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun deleteUser(userId: String): Result<Unit> {
+        return try {
+            // Remove user data from database
+            usersRef.child(userId).removeValue().await()
+            
+            // Note: Firebase Auth user deletion requires the user to be currently signed in
+            // In a production app, you'd need admin SDK for this
+            
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun toggleUserStatus(userId: String, isActive: Boolean): Result<Unit> {
+        return try {
+            usersRef.child(userId).child("isActive").setValue(isActive).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun createBackup(): Result<BackupData> {
+        return try {
+            // Get all data
+            val batteriesSnapshot = batteriesRef.get().await()
+            val customersSnapshot = customersRef.get().await()
+            val usersSnapshot = usersRef.get().await()
+            val statusHistorySnapshot = statusHistoryRef.get().await()
+            val staffNotesSnapshot = staffNotesRef.get().await()
+            val settingsSnapshot = settingsRef.get().await()
+            
+            val batteries = mutableListOf<Battery>()
+            val customers = mutableListOf<Customer>()
+            val users = mutableListOf<User>()
+            val statusHistory = mutableListOf<BatteryStatusHistory>()
+            val staffNotes = mutableListOf<StaffNote>()
+            
+            // Parse batteries
+            for (batterySnapshot in batteriesSnapshot.children) {
+                batterySnapshot.getValue(Battery::class.java)?.let { battery ->
+                    batteries.add(battery)
+                }
+            }
+            
+            // Parse customers
+            for (customerSnapshot in customersSnapshot.children) {
+                customerSnapshot.getValue(Customer::class.java)?.let { customer ->
+                    customers.add(customer)
+                }
+            }
+            
+            // Parse users
+            for (userSnapshot in usersSnapshot.children) {
+                userSnapshot.getValue(User::class.java)?.let { user ->
+                    users.add(user)
+                }
+            }
+            
+            // Parse status history
+            for (historySnapshot in statusHistorySnapshot.children) {
+                historySnapshot.getValue(BatteryStatusHistory::class.java)?.let { history ->
+                    statusHistory.add(history)
+                }
+            }
+            
+            // Parse staff notes
+            for (noteSnapshot in staffNotesSnapshot.children) {
+                noteSnapshot.getValue(StaffNote::class.java)?.let { note ->
+                    staffNotes.add(note)
+                }
+            }
+            
+            // Parse settings
+            val shopName = settingsSnapshot.child("shop_name").getValue(String::class.java) ?: "Battery Repair Service"
+            val batteryIdPrefix = settingsSnapshot.child("battery_id_prefix").getValue(String::class.java) ?: "BAT"
+            val batteryIdStart = settingsSnapshot.child("battery_id_start").getValue(String::class.java)?.toIntOrNull() ?: 1
+            val batteryIdPadding = settingsSnapshot.child("battery_id_padding").getValue(String::class.java)?.toIntOrNull() ?: 4
+            
+            val settings = ShopSettings(
+                shopName = shopName,
+                batteryIdPrefix = batteryIdPrefix,
+                batteryIdStart = batteryIdStart,
+                batteryIdPadding = batteryIdPadding
+            )
+            
+            val backupData = BackupData(
+                batteries = batteries,
+                customers = customers,
+                users = users,
+                statusHistory = statusHistory,
+                staffNotes = staffNotes,
+                settings = settings
+            )
+            
+            Result.success(backupData)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
     private suspend fun generateBatteryId(): String {
         return try {
             val prefix = getSetting("battery_id_prefix", "BAT")
