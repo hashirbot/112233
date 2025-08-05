@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                         dashboardAdapter.updateStats(stats)
                         binding.swipeRefresh.isRefreshing = false
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         binding.swipeRefresh.isRefreshing = false
                         Toast.makeText(this@MainActivity, "Failed to load dashboard data", Toast.LENGTH_SHORT).show()
                     }

@@ -1,5 +1,6 @@
 package com.batteryrepair.erp.ui.battery
 
+import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -27,7 +28,12 @@ class BatteryDetailsActivity : AppCompatActivity() {
         binding = ActivityBatteryDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
-        battery = intent.getParcelableExtra(EXTRA_BATTERY) ?: return
+        battery = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(EXTRA_BATTERY, Battery::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(EXTRA_BATTERY)
+        } ?: return
         
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -67,14 +73,14 @@ class BatteryDetailsActivity : AppCompatActivity() {
     
     private fun loadStatusHistory() {
         lifecycleScope.launch {
-            repository.getStatusHistory(battery.id).collect { history ->
+            repository.getStatusHistory(battery.id).collect { _ ->
                 // TODO: Setup RecyclerView for status history
             }
         }
     }
     
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+        onBackPressedDispatcher.onBackPressed()
         return true
     }
 }

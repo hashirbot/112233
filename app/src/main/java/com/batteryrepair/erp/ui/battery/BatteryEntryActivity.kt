@@ -89,7 +89,7 @@ class BatteryEntryActivity : AppCompatActivity() {
                     )
                     
                     repository.createBattery(battery).fold(
-                        onSuccess = { batteryId ->
+                        onSuccess = { _ ->
                             Toast.makeText(this@BatteryEntryActivity, "Battery registered successfully!", Toast.LENGTH_SHORT).show()
                             finish()
                         },
@@ -110,7 +110,7 @@ class BatteryEntryActivity : AppCompatActivity() {
     }
     
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+        onBackPressedDispatcher.onBackPressed()
         return true
     }
 }
