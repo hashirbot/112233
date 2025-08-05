@@ -9,6 +9,7 @@
     <string name="action_logout">Logout</string>
     <string name="action_settings">Settings</string>
     <string name="action_search">Search</string>
+    <string name="action_admin">Admin Panel</string>
     
     <!-- Dashboard -->
     <string name="dashboard_title">Dashboard</string>
@@ -28,6 +29,12 @@
     <!-- Technician Panel -->
     <string name="technician_panel_title">Technician Panel</string>
     <string name="update_status">Update Status</string>
+    
+    <!-- Admin Panel -->
+    <string name="admin_panel_title">Admin Panel</string>
+    <string name="shop_settings">Shop Settings</string>
+    <string name="user_management">User Management</string>
+    <string name="backup_restore">Backup &amp; Restore</string>
     
     <!-- Common -->
     <string name="loading">Loading...</string>

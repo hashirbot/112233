@@ -68,9 +68,20 @@ class FirebaseRepository {
     }
     
     fun getCurrentUser(): User? {
-        return auth.currentUser?.uid?.let { uid ->
-            // Return cached user or null - implement proper caching if needed
-            null
+        return null // Will be loaded asynchronously in activities
+    }
+    
+    suspend fun getUser(userId: String): Result<User> {
+        return try {
+            val snapshot = usersRef.child(userId).get().await()
+            val user = snapshot.getValue(User::class.java)
+            if (user != null) {
+                Result.success(user)
+            } else {
+                Result.failure(Exception("User not found"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
     

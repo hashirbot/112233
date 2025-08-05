@@ -16,6 +16,8 @@ import com.batteryrepair.erp.ui.auth.LoginActivity
 import com.batteryrepair.erp.ui.battery.BatteryEntryActivity
 import com.batteryrepair.erp.ui.technician.TechnicianPanelActivity
 import com.batteryrepair.erp.ui.reports.ReportsActivity
+import com.batteryrepair.erp.ui.admin.AdminActivity
+import com.batteryrepair.erp.data.models.UserRole
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -23,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val repository = FirebaseRepository()
     private lateinit var dashboardAdapter: DashboardAdapter
+    private var currentUser: User? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +39,7 @@ class MainActivity : AppCompatActivity() {
             setupSwipeRefresh()
             setupRecyclerView()
             setupFAB()
+            loadCurrentUser()
             loadDashboardData()
         } catch (e: Exception) {
             Log.e("MainActivity", "Crash: ${e.message}")
@@ -43,6 +47,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadCurrentUser() {
+        lifecycleScope.launch {
+            val firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            firebaseUser?.let { user ->
+                repository.getUser(user.uid).fold(
+                    onSuccess = { userData ->
+                        currentUser = userData
+                        invalidateOptionsMenu() // Refresh menu to show/hide admin option
+                    },
+                    onFailure = { /* Handle error silently */ }
+                )
+            }
+        }
+    }
 
     
     private fun setupRecyclerView() {
@@ -55,6 +73,13 @@ class MainActivity : AppCompatActivity() {
                 }
                 DashboardAction.REPORTS -> {
                     startActivity(Intent(this, ReportsActivity::class.java))
+                }
+                DashboardAction.BACKUP_DATA -> {
+                    if (currentUser?.role == UserRole.ADMIN || currentUser?.role == UserRole.SHOP_STAFF) {
+                        performBackup()
+                    } else {
+                        Toast.makeText(this, "Only admin and staff can create backups", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -98,14 +123,40 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    private fun performBackup() {
+        lifecycleScope.launch {
+            repository.createBackup().fold(
+                onSuccess = { backupData ->
+                    android.app.AlertDialog.Builder(this@MainActivity)
+                        .setTitle("Backup Created")
+                        .setMessage("Backup contains:\n• ${backupData.batteries.size} batteries\n• ${backupData.customers.size} customers\n• ${backupData.users.size} users\n• ${backupData.statusHistory.size} status records")
+                        .setPositiveButton("OK", null)
+                        .show()
+                },
+                onFailure = { error ->
+                    Toast.makeText(this@MainActivity, "Failed to create backup: ${error.message}", Toast.LENGTH_LONG).show()
+                }
+            )
+        }
+    }
+    
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         title = "Battery Repair ERP"
+        
+        // Show admin menu item only for admin users
+        val adminMenuItem = menu.findItem(R.id.action_admin)
+        adminMenuItem?.isVisible = currentUser?.role == UserRole.ADMIN
+        
         return true
     }
     
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_admin -> {
+                startActivity(Intent(this, AdminActivity::class.java))
+                true
+            }
             R.id.action_logout -> {
                 repository.signOut()
                 startActivity(Intent(this, LoginActivity::class.java))
@@ -118,6 +169,7 @@ class MainActivity : AppCompatActivity() {
     
     override fun onResume() {
         super.onResume()
+        loadCurrentUser()
         loadDashboardData()
     }
 }

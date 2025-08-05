@@ -10,7 +10,7 @@ import com.batteryrepair.erp.databinding.ItemDashboardActionBinding
 import com.batteryrepair.erp.R
 
 enum class DashboardAction {
-    NEW_BATTERY, TECHNICIAN_PANEL, SEARCH, REPORTS
+    NEW_BATTERY, TECHNICIAN_PANEL, SEARCH, REPORTS, BACKUP_DATA
 }
 
 class DashboardAdapter(
@@ -22,7 +22,8 @@ class DashboardAdapter(
         DashboardAction.NEW_BATTERY,
         DashboardAction.TECHNICIAN_PANEL,
         DashboardAction.SEARCH,
-        DashboardAction.REPORTS
+        DashboardAction.REPORTS,
+        DashboardAction.BACKUP_DATA
     )
     
     companion object {
@@ -98,6 +99,7 @@ class DashboardAdapter(
                 DashboardAction.TECHNICIAN_PANEL -> "Technician Panel" to android.R.drawable.ic_menu_manage
                 DashboardAction.SEARCH -> "Search Batteries" to android.R.drawable.ic_menu_search
                 DashboardAction.REPORTS -> "Reports" to android.R.drawable.ic_menu_report_image
+                DashboardAction.BACKUP_DATA -> "Backup Data" to android.R.drawable.ic_menu_save
             }
             
             binding.tvTitle.text = title
