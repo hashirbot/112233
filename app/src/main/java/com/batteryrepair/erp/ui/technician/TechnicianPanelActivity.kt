@@ -20,6 +20,10 @@ class TechnicianPanelActivity : AppCompatActivity() {
         binding = ActivityTechnicianPanelBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        title = "Technician Panel"
+        
         setupRecyclerView()
         loadPendingBatteries()
     }
@@ -44,23 +48,33 @@ class TechnicianPanelActivity : AppCompatActivity() {
     private fun loadPendingBatteries() {
         binding.swipeRefresh.isRefreshing = true
         lifecycleScope.launch {
-            repository.getBatteriesByStatus(BatteryStatus.PENDING).collect { batteries ->
-                batteryAdapter.submitList(batteries)
+            try {
+                repository.getBatteriesByStatus(BatteryStatus.PENDING).collect { batteries ->
+                    batteryAdapter.submitList(batteries)
+                    binding.swipeRefresh.isRefreshing = false
+                }
+            } catch (e: Exception) {
                 binding.swipeRefresh.isRefreshing = false
+                // Handle error - could show a toast or error message
             }
         }
     }
     
     private fun updateBatteryStatus(batteryId: String, status: BatteryStatus, comments: String, servicePrice: Double?) {
         lifecycleScope.launch {
-            repository.updateBatteryStatus(batteryId, status, comments, servicePrice).fold(
-                onSuccess = {
-                    // Success handled by real-time updates
-                },
-                onFailure = { error ->
-                    // Handle error
-                }
-            )
+            try {
+                repository.updateBatteryStatus(batteryId, status, comments, servicePrice).fold(
+                    onSuccess = {
+                        // Success handled by real-time updates
+                        android.widget.Toast.makeText(this@TechnicianPanelActivity, "Status updated successfully", android.widget.Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { error ->
+                        android.widget.Toast.makeText(this@TechnicianPanelActivity, "Failed to update status: ${error.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                )
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(this@TechnicianPanelActivity, "Error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
     

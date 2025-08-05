@@ -69,7 +69,8 @@ class LoginActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         // Check if user is already signed in
-        if (repository.getCurrentUser() != null) {
+        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        if (currentUser != null) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
         }

@@ -47,7 +47,12 @@ class TechnicianBatteryAdapter(
             )
             statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             binding.spinnerStatus.adapter = statusAdapter
-            binding.spinnerStatus.setSelection(battery.status.ordinal)
+            
+            // Set current status selection
+            val currentStatusIndex = BatteryStatus.values().indexOf(battery.status)
+            if (currentStatusIndex >= 0) {
+                binding.spinnerStatus.setSelection(currentStatusIndex)
+            }
             
             // Set current service price
             if (battery.servicePrice > 0) {

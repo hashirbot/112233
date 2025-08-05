@@ -44,7 +44,7 @@ class FirebaseRepository {
                     // Create default user if not exists
                     val defaultUser = createDefaultUser(firebaseUser.uid, username)
                     usersRef.child(firebaseUser.uid).setValue(defaultUser).await()
-                    Result.failure(Exception("User data not found"))
+                    Result.success(defaultUser)
                 }
             } ?: Result.failure(Exception("Authentication failed"))
         } catch (e: Exception) {

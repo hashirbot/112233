@@ -37,3 +37,12 @@ fun BatteryStatus.displayName(): String = when (this) {
     BatteryStatus.RETURNED -> "Returned"
     BatteryStatus.NOT_REPAIRABLE -> "Not Repairable"
 }
+
+fun BatteryStatus.getColorResource(): Int = when (this) {
+    BatteryStatus.RECEIVED -> com.batteryrepair.erp.R.color.status_received
+    BatteryStatus.PENDING -> com.batteryrepair.erp.R.color.status_pending
+    BatteryStatus.READY -> com.batteryrepair.erp.R.color.status_ready
+    BatteryStatus.DELIVERED -> com.batteryrepair.erp.R.color.status_delivered
+    BatteryStatus.RETURNED -> com.batteryrepair.erp.R.color.status_returned
+    BatteryStatus.NOT_REPAIRABLE -> com.batteryrepair.erp.R.color.status_not_repairable
+}

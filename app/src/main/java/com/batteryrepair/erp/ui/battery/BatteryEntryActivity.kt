@@ -21,6 +21,9 @@ class BatteryEntryActivity : AppCompatActivity() {
         binding = ActivityBatteryEntryBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        title = "Register New Battery"
 
         setupUI()
     }
@@ -82,7 +85,7 @@ class BatteryEntryActivity : AppCompatActivity() {
                         capacity = capacity,
                         isPickup = isPickup,
                         pickupCharge = pickupCharge,
-                        status = BatteryStatus.PENDING
+                        status = BatteryStatus.RECEIVED
                     )
                     
                     repository.createBattery(battery).fold(

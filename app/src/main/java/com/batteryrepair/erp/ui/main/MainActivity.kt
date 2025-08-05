@@ -15,6 +15,7 @@ import com.batteryrepair.erp.databinding.ActivityMainBinding
 import com.batteryrepair.erp.ui.auth.LoginActivity
 import com.batteryrepair.erp.ui.battery.BatteryEntryActivity
 import com.batteryrepair.erp.ui.technician.TechnicianPanelActivity
+import com.batteryrepair.erp.ui.reports.ReportsActivity
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -50,10 +51,10 @@ class MainActivity : AppCompatActivity() {
                 DashboardAction.NEW_BATTERY -> startActivity(Intent(this, BatteryEntryActivity::class.java))
                 DashboardAction.TECHNICIAN_PANEL -> startActivity(Intent(this, TechnicianPanelActivity::class.java))
                 DashboardAction.SEARCH -> {
-                    // TODO: Implement search
+                    Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show()
                 }
                 DashboardAction.REPORTS -> {
-                    // TODO: Implement reports
+                    startActivity(Intent(this, ReportsActivity::class.java))
                 }
             }
         }
@@ -79,21 +80,27 @@ class MainActivity : AppCompatActivity() {
     private fun loadDashboardData() {
         binding.swipeRefresh.isRefreshing = true
         lifecycleScope.launch {
-            repository.getDashboardStats().fold(
-                onSuccess = { stats ->
-                    dashboardAdapter.updateStats(stats)
-                    binding.swipeRefresh.isRefreshing = false
-                },
-                onFailure = { error ->
-                    binding.swipeRefresh.isRefreshing = false
-                    // Show error message or retry option
-                }
-            )
+            try {
+                repository.getDashboardStats().fold(
+                    onSuccess = { stats ->
+                        dashboardAdapter.updateStats(stats)
+                        binding.swipeRefresh.isRefreshing = false
+                    },
+                    onFailure = { error ->
+                        binding.swipeRefresh.isRefreshing = false
+                        Toast.makeText(this@MainActivity, "Failed to load dashboard data", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            } catch (e: Exception) {
+                binding.swipeRefresh.isRefreshing = false
+                Toast.makeText(this@MainActivity, "Error loading data: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
     
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        title = "Battery Repair ERP"
         return true
     }
     

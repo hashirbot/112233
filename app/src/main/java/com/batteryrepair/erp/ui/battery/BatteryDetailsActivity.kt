@@ -28,6 +28,10 @@ class BatteryDetailsActivity : AppCompatActivity() {
         setContentView(binding.root)
         
         battery = intent.getParcelableExtra(EXTRA_BATTERY) ?: return
+        
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        title = "Battery Details"
 
         setupUI()
         loadStatusHistory()
