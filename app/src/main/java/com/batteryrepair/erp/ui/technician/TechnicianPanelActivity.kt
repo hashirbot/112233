@@ -20,9 +20,12 @@ class TechnicianPanelActivity : AppCompatActivity() {
         binding = ActivityTechnicianPanelBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup toolbar
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = "Technician Panel"
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Technician Panel"
+        }
         
         setupRecyclerView()
         loadPendingBatteries()

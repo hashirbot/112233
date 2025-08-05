@@ -21,9 +21,12 @@ class BatteryEntryActivity : AppCompatActivity() {
         binding = ActivityBatteryEntryBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // Setup toolbar
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = "Register New Battery"
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Register New Battery"
+        }
 
         setupUI()
     }

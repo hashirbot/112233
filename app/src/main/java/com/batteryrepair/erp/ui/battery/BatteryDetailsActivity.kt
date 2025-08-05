@@ -36,8 +36,10 @@ class BatteryDetailsActivity : AppCompatActivity() {
         } ?: return
         
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = "Battery Details"
+        supportActionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            title = "Battery Details"
+        }
 
         setupUI()
         loadStatusHistory()
