@@ -23,10 +23,15 @@ class TechnicianPanelActivity : AppCompatActivity() {
             binding = ActivityTechnicianPanelBinding.inflate(layoutInflater)
             setContentView(binding.root)
 
-            // Setup toolbar
-            setSupportActionBar(binding.toolbar)
-            supportActionBar?.apply {
-                setDisplayHomeAsUpEnabled(true)
+            // Setup toolbar with proper error handling
+            try {
+                setSupportActionBar(binding.toolbar)
+                supportActionBar?.apply {
+                    setDisplayHomeAsUpEnabled(true)
+                    title = "Technician Panel"
+                }
+            } catch (e: Exception) {
+                // If toolbar setup fails, continue without it
                 title = "Technician Panel"
             }
             
@@ -41,7 +46,11 @@ class TechnicianPanelActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         try {
             batteryAdapter = TechnicianBatteryAdapter { battery, status, comments, servicePrice ->
-                updateBatteryStatus(battery.id, status, comments, servicePrice)
+                try {
+                    updateBatteryStatus(battery.id, status, comments, servicePrice)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error updating battery: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
             
             binding.recyclerView.apply {
@@ -50,7 +59,12 @@ class TechnicianPanelActivity : AppCompatActivity() {
             }
             
             binding.swipeRefresh.setOnRefreshListener {
-                loadPendingBatteries()
+                try {
+                    loadPendingBatteries()
+                } catch (e: Exception) {
+                    binding.swipeRefresh.isRefreshing = false
+                    Toast.makeText(this, "Error refreshing data: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Error setting up RecyclerView: ${e.message}", Toast.LENGTH_LONG).show()
@@ -62,8 +76,13 @@ class TechnicianPanelActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 repository.getBatteriesByStatus(BatteryStatus.PENDING).collect { batteries ->
-                    batteryAdapter.submitList(batteries)
-                    binding.swipeRefresh.isRefreshing = false
+                    try {
+                        batteryAdapter.submitList(batteries)
+                        binding.swipeRefresh.isRefreshing = false
+                    } catch (e: Exception) {
+                        binding.swipeRefresh.isRefreshing = false
+                        Toast.makeText(this@TechnicianPanelActivity, "Error displaying batteries: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 binding.swipeRefresh.isRefreshing = false
@@ -90,7 +109,12 @@ class TechnicianPanelActivity : AppCompatActivity() {
     }
     
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed()
-        return true
+        try {
+            onBackPressedDispatcher.onBackPressed()
+            return true
+        } catch (e: Exception) {
+            finish()
+            return true
+        }
     }
 }

@@ -23,10 +23,15 @@ class BatteryEntryActivity : AppCompatActivity() {
             binding = ActivityBatteryEntryBinding.inflate(layoutInflater)
             setContentView(binding.root)
             
-            // Setup toolbar
-            setSupportActionBar(binding.toolbar)
-            supportActionBar?.apply {
-                setDisplayHomeAsUpEnabled(true)
+            // Setup toolbar with proper error handling
+            try {
+                setSupportActionBar(binding.toolbar)
+                supportActionBar?.apply {
+                    setDisplayHomeAsUpEnabled(true)
+                    title = "Register New Battery"
+                }
+            } catch (e: Exception) {
+                // If toolbar setup fails, continue without it
                 title = "Register New Battery"
             }
 
@@ -40,14 +45,22 @@ class BatteryEntryActivity : AppCompatActivity() {
     private fun setupUI() {
         try {
             binding.switchPickup.setOnCheckedChangeListener { _, isChecked ->
-                binding.etPickupCharge.isEnabled = isChecked
-                if (!isChecked) {
-                    binding.etPickupCharge.setText("0")
+                try {
+                    binding.etPickupCharge.isEnabled = isChecked
+                    if (!isChecked) {
+                        binding.etPickupCharge.setText("0")
+                    }
+                } catch (e: Exception) {
+                    // Handle UI error silently
                 }
             }
             
             binding.btnRegister.setOnClickListener {
-                registerBattery()
+                try {
+                    registerBattery()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error during registration: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Error setting up UI: ${e.message}", Toast.LENGTH_LONG).show()
@@ -131,7 +144,12 @@ class BatteryEntryActivity : AppCompatActivity() {
     }
     
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed()
-        return true
+        try {
+            onBackPressedDispatcher.onBackPressed()
+            return true
+        } catch (e: Exception) {
+            finish()
+            return true
+        }
     }
 }

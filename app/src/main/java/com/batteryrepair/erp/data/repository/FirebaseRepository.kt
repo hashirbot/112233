@@ -96,7 +96,9 @@ class FirebaseRepository {
             val batteryId = generateBatteryId()
             val batteryWithId = battery.copy(id = batteriesRef.push().key ?: "", batteryId = batteryId)
             
-            batteriesRef.child(batteryWithId.id).setValue(batteryWithId).await()
+            // Convert battery to map to avoid enum serialization issues
+            val batteryMap = batteryToMap(batteryWithId)
+            batteriesRef.child(batteryWithId.id).setValue(batteryMap).await()
             
             // Add initial status history
             addStatusHistory(BatteryStatusHistory(
@@ -116,20 +118,21 @@ class FirebaseRepository {
     suspend fun updateBatteryStatus(batteryId: String, status: BatteryStatus, comments: String, servicePrice: Double? = null): Result<Unit> {
         return try {
             val updates = mutableMapOf<String, Any>(
-                "status" to status
+                "status" to status.toString()
             )
             servicePrice?.let { updates["servicePrice"] = it }
             
             batteriesRef.child(batteryId).updateChildren(updates).await()
             
             // Add status history
-            addStatusHistory(BatteryStatusHistory(
+            val statusHistory = BatteryStatusHistory(
                 id = statusHistoryRef.push().key ?: "",
                 batteryId = batteryId,
                 status = status,
                 comments = comments,
                 updatedBy = auth.currentUser?.uid ?: ""
-            ))
+            )
+            addStatusHistory(statusHistory)
             
             Result.success(Unit)
         } catch (e: Exception) {
@@ -145,7 +148,9 @@ class FirebaseRepository {
                 var processedCount = 0
                 
                 for (batterySnapshot in snapshot.children) {
-                    batterySnapshot.getValue(Battery::class.java)?.let { battery ->
+                    try {
+                        val batteryData = batterySnapshot.value as? Map<String, Any> ?: continue
+                        val battery = parseBatteryFromMap(batteryData) ?: continue
                         // Load customer data for each battery
                         repositoryScope.launch {
                             val customerResult = getCustomer(battery.customerId)
@@ -170,6 +175,11 @@ class FirebaseRepository {
                                 }
                             )
                         }
+                    } catch (e: Exception) {
+                        processedCount++
+                        if (processedCount == totalBatteries) {
+                            trySend(batteries.sortedByDescending { it.inwardDate })
+                        }
                     }
                 }
                 if (totalBatteries == 0) {
@@ -187,7 +197,7 @@ class FirebaseRepository {
     }
     
     fun getBatteriesByStatus(status: BatteryStatus): Flow<List<Battery>> = callbackFlow {
-        val query = batteriesRef.orderByChild("status").equalTo(status.name)
+        val query = batteriesRef.orderByChild("status").equalTo(status.toString())
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val batteries = mutableListOf<Battery>()
@@ -195,7 +205,9 @@ class FirebaseRepository {
                 var processedCount = 0
                 
                 for (batterySnapshot in snapshot.children) {
-                    batterySnapshot.getValue(Battery::class.java)?.let { battery ->
+                    try {
+                        val batteryData = batterySnapshot.value as? Map<String, Any> ?: continue
+                        val battery = parseBatteryFromMap(batteryData) ?: continue
                         // Load customer data for each battery
                         repositoryScope.launch {
                             val customerResult = getCustomer(battery.customerId)
@@ -219,6 +231,11 @@ class FirebaseRepository {
                                     }
                                 }
                             )
+                        }
+                    } catch (e: Exception) {
+                        processedCount++
+                        if (processedCount == totalBatteries) {
+                            trySend(batteries.sortedByDescending { it.inwardDate })
                         }
                     }
                 }
@@ -291,10 +308,6 @@ class FirebaseRepository {
     }
     
     // Status History
-    private suspend fun addStatusHistory(statusHistory: BatteryStatusHistory) {
-        statusHistoryRef.child(statusHistory.id).setValue(statusHistory).await()
-    }
-    
     fun getStatusHistory(batteryId: String): Flow<List<BatteryStatusHistory>> = callbackFlow {
         val query = statusHistoryRef.orderByChild("batteryId").equalTo(batteryId)
         val listener = object : ValueEventListener {
@@ -660,6 +673,74 @@ class FirebaseRepository {
             Result.success(stats)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+    
+    private fun batteryToMap(battery: Battery): Map<String, Any> {
+        return mapOf(
+            "id" to battery.id,
+            "batteryId" to battery.batteryId,
+            "customerId" to battery.customerId,
+            "batteryType" to battery.batteryType,
+            "voltage" to battery.voltage,
+            "capacity" to battery.capacity,
+            "status" to battery.status.toString(),
+            "inwardDate" to battery.inwardDate,
+            "servicePrice" to battery.servicePrice,
+            "pickupCharge" to battery.pickupCharge,
+            "isPickup" to battery.isPickup
+        )
+    }
+    
+    private fun parseBatteryFromMap(data: Map<String, Any>): Battery? {
+        return try {
+            Battery(
+                id = data["id"] as? String ?: "",
+                batteryId = data["batteryId"] as? String ?: "",
+                customerId = data["customerId"] as? String ?: "",
+                batteryType = data["batteryType"] as? String ?: "",
+                voltage = data["voltage"] as? String ?: "",
+                capacity = data["capacity"] as? String ?: "",
+                status = parseStatus(data["status"] as? String),
+                inwardDate = (data["inwardDate"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                servicePrice = (data["servicePrice"] as? Number)?.toDouble() ?: 0.0,
+                pickupCharge = (data["pickupCharge"] as? Number)?.toDouble() ?: 0.0,
+                isPickup = data["isPickup"] as? Boolean ?: false
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+    
+    private fun parseStatus(statusString: String?): BatteryStatus {
+        return try {
+            when (statusString?.uppercase()) {
+                "RECEIVED" -> BatteryStatus.RECEIVED
+                "PENDING" -> BatteryStatus.PENDING
+                "READY" -> BatteryStatus.READY
+                "DELIVERED" -> BatteryStatus.DELIVERED
+                "RETURNED" -> BatteryStatus.RETURNED
+                "NOT_REPAIRABLE" -> BatteryStatus.NOT_REPAIRABLE
+                else -> BatteryStatus.RECEIVED
+            }
+        } catch (e: Exception) {
+            BatteryStatus.RECEIVED
+        }
+    }
+    
+    private suspend fun addStatusHistory(statusHistory: BatteryStatusHistory) {
+        try {
+            val historyMap = mapOf(
+                "id" to statusHistory.id,
+                "batteryId" to statusHistory.batteryId,
+                "status" to statusHistory.status.toString(),
+                "comments" to statusHistory.comments,
+                "updatedBy" to statusHistory.updatedBy,
+                "updatedAt" to statusHistory.updatedAt
+            )
+            statusHistoryRef.child(statusHistory.id).setValue(historyMap).await()
+        } catch (e: Exception) {
+            // Handle error silently for now
         }
     }
 }
